@@ -6,10 +6,12 @@ import com.hollingsworth.arsnouveau.api.spell.AbstractSpellPart;
 import com.hollingsworth.arsnouveau.api.spell.SpellResolver;
 import com.hollingsworth.arsnouveau.common.lib.GlyphLib;
 import com.hollingsworth.arsnouveau.common.spell.method.MethodTouch;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.mumu17.castlib.util.ProviderRegistry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.phys.BlockHitResult;
@@ -24,11 +26,11 @@ import java.util.List;
 public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnEntity", at = @At(value = "HEAD"), ordinal = 0, remap = false, argsOnly = true)
-    public Entity onCastOnEntity_entity(Entity original) {
+    public Entity onCastOnEntity_entity(Entity original, @Local(argsOnly = true) LivingEntity caster) {
         var provider = ProviderRegistry.projectileDataProvider;
-        if (provider != null && provider.isEnabled()) {
-            Entity entity = provider.getTargetEntity();
-            InteractionHand hand = provider.getHand();
+        if (provider != null && provider.isEnabled(caster)) {
+            Entity entity = provider.getTargetEntity(caster);
+            InteractionHand hand = provider.getHand(caster);
             if (hand == InteractionHand.OFF_HAND) {
                 if (entity != null) {
                     return entity;
@@ -39,11 +41,11 @@ public class MethodTouchMixin {
     }
 
     @ModifyVariable(method = "onCastOnEntity", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true, remap = false)
-    public InteractionHand onCastOnEntity_hand(InteractionHand original) {
+    public InteractionHand onCastOnEntity_hand(InteractionHand original, @Local(argsOnly = true) LivingEntity caster) {
         var provider = ProviderRegistry.projectileDataProvider;
-        if (provider != null && provider.isEnabled()) {
-            Entity entity = provider.getTargetEntity();
-            InteractionHand hand = provider.getHand();
+        if (provider != null && provider.isEnabled(caster)) {
+            Entity entity = provider.getTargetEntity(caster);
+            InteractionHand hand = provider.getHand(caster);
             if (hand == InteractionHand.OFF_HAND) {
                 if (entity != null) {
                     return hand;
@@ -54,13 +56,13 @@ public class MethodTouchMixin {
     }
 
     @ModifyVariable(method = "onCastOnEntity", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true, remap = false)
-    public SpellResolver onCastOnEntity_spellResolver(SpellResolver original) {
+    public SpellResolver onCastOnEntity_spellResolver(SpellResolver original, @Local(argsOnly = true) LivingEntity caster) {
         var projectileProvider = ProviderRegistry.projectileDataProvider;
         var cooldownProvider = ProviderRegistry.gunItemCooldownProvider;
-        if (projectileProvider != null && cooldownProvider != null && projectileProvider.isEnabled()) {
-            Entity entity = projectileProvider.getTargetEntity();
-            InteractionHand hand = projectileProvider.getHand();
-            ItemStack gun = projectileProvider.getCurrentGun();
+        if (projectileProvider != null && cooldownProvider != null && projectileProvider.isEnabled(caster)) {
+            Entity entity = projectileProvider.getTargetEntity(caster);
+            InteractionHand hand = projectileProvider.getHand(caster);
+            ItemStack gun = projectileProvider.getCurrentGun(caster);
             double damageMultiply = ProviderRegistry.damageAmplifierProvider.getAmplifier(
                     ProviderRegistry.gunItemCooldownProvider.getGunDamage(gun)
             );
@@ -87,12 +89,13 @@ public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnBlock(Lnet/minecraft/world/item/context/UseOnContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellStats;Lcom/hollingsworth/arsnouveau/api/spell/SpellContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellResolver;)Lcom/hollingsworth/arsnouveau/api/spell/CastResolveType;", at = @At(value = "HEAD"), ordinal = 0, remap = false, argsOnly = true)
     public UseOnContext onCastOnBlock_UseOnContext(UseOnContext value) {
+        LivingEntity caster = value.getPlayer();
         var provider = ProviderRegistry.projectileDataProvider;
-        if (provider != null && provider.isEnabled()) {
-            BlockHitResult blockHR = provider.getBlockHitResult();
-            InteractionHand hand = provider.getHand();
+        if (provider != null && provider.isEnabled(caster)) {
+            BlockHitResult blockHR = provider.getBlockHitResult(caster);
+            InteractionHand hand = provider.getHand(caster);
             if (hand == InteractionHand.OFF_HAND) {
-                if (blockHR != null && value != null && value.getPlayer() != null) {
+                if (blockHR != null && value.getPlayer() != null) {
                     return new UseOnContext(value.getPlayer(), hand, blockHR);
                 }
             }
@@ -101,13 +104,17 @@ public class MethodTouchMixin {
     }
 
     @ModifyVariable(method = "onCastOnBlock(Lnet/minecraft/world/item/context/UseOnContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellStats;Lcom/hollingsworth/arsnouveau/api/spell/SpellContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellResolver;)Lcom/hollingsworth/arsnouveau/api/spell/CastResolveType;", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true, remap = false)
-    public SpellResolver onCastOnBlock_spellResolver(SpellResolver original) {
+    public SpellResolver onCastOnBlock_spellResolver(SpellResolver original, @Local(argsOnly = true) UseOnContext context) {
+        if (context == null) {
+            return original;
+        }
+        LivingEntity caster = context.getPlayer();
         var projectileProvider = ProviderRegistry.projectileDataProvider;
         var cooldownProvider = ProviderRegistry.gunItemCooldownProvider;
-        if (projectileProvider != null && cooldownProvider != null && projectileProvider.isEnabled()) {
-            BlockHitResult blockHR = projectileProvider.getBlockHitResult();
-            InteractionHand hand = projectileProvider.getHand();
-            ItemStack gun = projectileProvider.getCurrentGun();
+        if (projectileProvider != null && cooldownProvider != null && projectileProvider.isEnabled(caster)) {
+            BlockHitResult blockHR = projectileProvider.getBlockHitResult(caster);
+            InteractionHand hand = projectileProvider.getHand(caster);
+            ItemStack gun = projectileProvider.getCurrentGun(caster);
             double damageMultiply = ProviderRegistry.damageAmplifierProvider.getAmplifier(
                     ProviderRegistry.gunItemCooldownProvider.getGunDamage(gun)
             );
@@ -133,11 +140,11 @@ public class MethodTouchMixin {
     }
 
     @ModifyVariable(method = "onCastOnBlock(Lnet/minecraft/world/phys/BlockHitResult;Lnet/minecraft/world/entity/LivingEntity;Lcom/hollingsworth/arsnouveau/api/spell/SpellStats;Lcom/hollingsworth/arsnouveau/api/spell/SpellContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellResolver;)Lcom/hollingsworth/arsnouveau/api/spell/CastResolveType;", at = @At(value = "HEAD"), ordinal = 0, remap = false, argsOnly = true)
-    public BlockHitResult onCastOnBlock_BlockHitResult(BlockHitResult original) {
+    public BlockHitResult onCastOnBlock_BlockHitResult(BlockHitResult original, @Local(argsOnly = true) LivingEntity caster) {
         var provider = ProviderRegistry.projectileDataProvider;
-        if (provider != null && provider.isEnabled()) {
-            BlockHitResult blockHR = provider.getBlockHitResult();
-            InteractionHand hand = provider.getHand();
+        if (provider != null && provider.isEnabled(caster)) {
+            BlockHitResult blockHR = provider.getBlockHitResult(caster);
+            InteractionHand hand = provider.getHand(caster);
             if (hand == InteractionHand.OFF_HAND) {
                 if (blockHR != null) {
                     return blockHR;
