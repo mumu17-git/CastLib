@@ -23,12 +23,14 @@ public class SpellUtilMixin {
             Entity entity = provider.getTargetEntity((LivingEntity) caster);
             BlockHitResult blockHitResult = provider.getBlockHitResult((LivingEntity) caster);
             InteractionHand hand = provider.getHand((LivingEntity) caster);
-            if (hand == InteractionHand.OFF_HAND) {
+            if (hand != InteractionHand.MAIN_HAND) {
                 if (entity != null) {
                     HitResult hitResult = new EntityHitResult(entity);
                     cir.setReturnValue(hitResult);
+                    cir.cancel();
                 } else if (blockHitResult != null) {
                     cir.setReturnValue(blockHitResult);
+                    cir.cancel();
                 }
             }
         }

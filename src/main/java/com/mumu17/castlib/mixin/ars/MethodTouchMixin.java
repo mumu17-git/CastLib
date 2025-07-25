@@ -31,7 +31,7 @@ public class MethodTouchMixin {
         if (provider != null && provider.isEnabled(caster)) {
             Entity entity = provider.getTargetEntity(caster);
             InteractionHand hand = provider.getHand(caster);
-            if (hand == InteractionHand.OFF_HAND) {
+            if (hand != InteractionHand.MAIN_HAND) {
                 if (entity != null) {
                     return entity;
                 }
@@ -46,7 +46,7 @@ public class MethodTouchMixin {
         if (provider != null && provider.isEnabled(caster)) {
             Entity entity = provider.getTargetEntity(caster);
             InteractionHand hand = provider.getHand(caster);
-            if (hand == InteractionHand.OFF_HAND) {
+            if (hand != InteractionHand.MAIN_HAND) {
                 if (entity != null) {
                     return hand;
                 }
@@ -66,7 +66,7 @@ public class MethodTouchMixin {
             double damageMultiply = ProviderRegistry.damageAmplifierProvider.getAmplifier(
                     ProviderRegistry.gunItemCooldownProvider.getGunDamage(gun)
             );
-            if (hand == InteractionHand.OFF_HAND) {
+            if (hand != InteractionHand.MAIN_HAND) {
                 if (entity != null) {
                     List<AbstractSpellPart> modified_parts = new ArrayList<>(List.copyOf(original.spell.recipe));
                     for (AbstractSpellPart part : original.spell.recipe) {
@@ -94,7 +94,7 @@ public class MethodTouchMixin {
         if (provider != null && provider.isEnabled(caster)) {
             BlockHitResult blockHR = provider.getBlockHitResult(caster);
             InteractionHand hand = provider.getHand(caster);
-            if (hand == InteractionHand.OFF_HAND) {
+            if (hand != InteractionHand.MAIN_HAND) {
                 if (blockHR != null && value.getPlayer() != null) {
                     return new UseOnContext(value.getPlayer(), hand, blockHR);
                 }
@@ -118,7 +118,7 @@ public class MethodTouchMixin {
             double damageMultiply = ProviderRegistry.damageAmplifierProvider.getAmplifier(
                     ProviderRegistry.gunItemCooldownProvider.getGunDamage(gun)
             );
-            if (hand == InteractionHand.OFF_HAND) {
+            if (hand != InteractionHand.MAIN_HAND) {
                 if (blockHR != null) {
                     List<AbstractSpellPart> modified_parts = new ArrayList<>(List.copyOf(original.spell.recipe));
                     for (AbstractSpellPart part : original.spell.recipe) {
@@ -145,7 +145,7 @@ public class MethodTouchMixin {
         if (provider != null && provider.isEnabled(caster)) {
             BlockHitResult blockHR = provider.getBlockHitResult(caster);
             InteractionHand hand = provider.getHand(caster);
-            if (hand == InteractionHand.OFF_HAND) {
+            if (hand != InteractionHand.MAIN_HAND) {
                 if (blockHR != null) {
                     return blockHR;
                 }
