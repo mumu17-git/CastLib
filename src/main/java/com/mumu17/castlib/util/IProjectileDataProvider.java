@@ -11,5 +11,5 @@ public interface IProjectileDataProvider {
     Entity getTargetEntity(LivingEntity player);
     InteractionHand getHand(LivingEntity player);
     BlockHitResult getBlockHitResult(LivingEntity player);
-    ItemStack getCurrentGun(LivingEntity player);
+    ItemStack getArms(LivingEntity player);
 }

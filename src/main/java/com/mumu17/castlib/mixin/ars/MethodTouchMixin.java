@@ -16,18 +16,21 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.phys.BlockHitResult;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Mixin(MethodTouch.class)
 public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnEntity", at = @At(value = "HEAD"), ordinal = 0, remap = false, argsOnly = true)
     public Entity onCastOnEntity_entity(Entity original, @Local(argsOnly = true) LivingEntity caster) {
-        var provider = ProviderRegistry.projectileDataProvider;
+        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled(caster)) {
             Entity entity = provider.getTargetEntity(caster);
             InteractionHand hand = provider.getHand(caster);
@@ -42,7 +45,8 @@ public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnEntity", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true, remap = false)
     public InteractionHand onCastOnEntity_hand(InteractionHand original, @Local(argsOnly = true) LivingEntity caster) {
-        var provider = ProviderRegistry.projectileDataProvider;
+        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled(caster)) {
             Entity entity = provider.getTargetEntity(caster);
             InteractionHand hand = provider.getHand(caster);
@@ -57,15 +61,15 @@ public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnEntity", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true, remap = false)
     public SpellResolver onCastOnEntity_spellResolver(SpellResolver original, @Local(argsOnly = true) LivingEntity caster) {
-        var projectileProvider = ProviderRegistry.projectileDataProvider;
-        var cooldownProvider = ProviderRegistry.gunItemCooldownProvider;
+        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        var projectileProvider = ProviderRegistry.getProjectileProvider(castMod);
+        var cooldownProvider = ProviderRegistry.getArmsNbtProvider(castMod);
+        var damageAmplifierProvider = ProviderRegistry.getDamageAmplifierProvider(castMod);
         if (projectileProvider != null && cooldownProvider != null && projectileProvider.isEnabled(caster)) {
             Entity entity = projectileProvider.getTargetEntity(caster);
             InteractionHand hand = projectileProvider.getHand(caster);
-            ItemStack gun = projectileProvider.getCurrentGun(caster);
-            double damageMultiply = ProviderRegistry.damageAmplifierProvider.getAmplifier(
-                    ProviderRegistry.gunItemCooldownProvider.getGunDamage(gun)
-            );
+            ItemStack gun = projectileProvider.getArms(caster);
+            double damageMultiply = damageAmplifierProvider.getAmplifier(cooldownProvider.getArmsDamage(gun));
             if (hand != InteractionHand.MAIN_HAND) {
                 if (entity != null) {
                     List<AbstractSpellPart> modified_parts = new ArrayList<>(List.copyOf(original.spell.recipe));
@@ -90,7 +94,8 @@ public class MethodTouchMixin {
     @ModifyVariable(method = "onCastOnBlock(Lnet/minecraft/world/item/context/UseOnContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellStats;Lcom/hollingsworth/arsnouveau/api/spell/SpellContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellResolver;)Lcom/hollingsworth/arsnouveau/api/spell/CastResolveType;", at = @At(value = "HEAD"), ordinal = 0, remap = false, argsOnly = true)
     public UseOnContext onCastOnBlock_UseOnContext(UseOnContext value) {
         LivingEntity caster = value.getPlayer();
-        var provider = ProviderRegistry.projectileDataProvider;
+        String castMod = Objects.requireNonNull(caster).getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled(caster)) {
             BlockHitResult blockHR = provider.getBlockHitResult(caster);
             InteractionHand hand = provider.getHand(caster);
@@ -109,14 +114,16 @@ public class MethodTouchMixin {
             return original;
         }
         LivingEntity caster = context.getPlayer();
-        var projectileProvider = ProviderRegistry.projectileDataProvider;
-        var cooldownProvider = ProviderRegistry.gunItemCooldownProvider;
+        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        var projectileProvider = ProviderRegistry.getProjectileProvider(castMod);
+        var cooldownProvider = ProviderRegistry.getArmsNbtProvider(castMod);
+        var damageAmplifierProvider = ProviderRegistry.getDamageAmplifierProvider(castMod);
         if (projectileProvider != null && cooldownProvider != null && projectileProvider.isEnabled(caster)) {
             BlockHitResult blockHR = projectileProvider.getBlockHitResult(caster);
             InteractionHand hand = projectileProvider.getHand(caster);
-            ItemStack gun = projectileProvider.getCurrentGun(caster);
-            double damageMultiply = ProviderRegistry.damageAmplifierProvider.getAmplifier(
-                    ProviderRegistry.gunItemCooldownProvider.getGunDamage(gun)
+            ItemStack gun = projectileProvider.getArms(caster);
+            double damageMultiply = damageAmplifierProvider.getAmplifier(
+                    cooldownProvider.getArmsDamage(gun)
             );
             if (hand != InteractionHand.MAIN_HAND) {
                 if (blockHR != null) {
@@ -141,7 +148,8 @@ public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnBlock(Lnet/minecraft/world/phys/BlockHitResult;Lnet/minecraft/world/entity/LivingEntity;Lcom/hollingsworth/arsnouveau/api/spell/SpellStats;Lcom/hollingsworth/arsnouveau/api/spell/SpellContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellResolver;)Lcom/hollingsworth/arsnouveau/api/spell/CastResolveType;", at = @At(value = "HEAD"), ordinal = 0, remap = false, argsOnly = true)
     public BlockHitResult onCastOnBlock_BlockHitResult(BlockHitResult original, @Local(argsOnly = true) LivingEntity caster) {
-        var provider = ProviderRegistry.projectileDataProvider;
+        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled(caster)) {
             BlockHitResult blockHR = provider.getBlockHitResult(caster);
             InteractionHand hand = provider.getHand(caster);

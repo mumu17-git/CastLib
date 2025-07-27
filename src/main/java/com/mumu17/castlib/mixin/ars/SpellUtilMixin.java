@@ -18,7 +18,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class SpellUtilMixin {
     @Inject(method = "rayTrace", at = @At(value = "HEAD"), cancellable = true, remap = false)
     private static void rayTrace(CallbackInfoReturnable<HitResult> cir, @Local(argsOnly = true) Entity caster) {
-        var provider = ProviderRegistry.projectileDataProvider;
+        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled((LivingEntity) caster)) {
             Entity entity = provider.getTargetEntity((LivingEntity) caster);
             BlockHitResult blockHitResult = provider.getBlockHitResult((LivingEntity) caster);
