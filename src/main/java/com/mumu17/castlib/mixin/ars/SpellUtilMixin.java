@@ -3,6 +3,7 @@ package com.mumu17.castlib.mixin.ars;
 import com.hollingsworth.arsnouveau.api.util.SpellUtil;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mumu17.castlib.util.ProviderRegistry;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,7 +19,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class SpellUtilMixin {
     @Inject(method = "rayTrace", at = @At(value = "HEAD"), cancellable = true, remap = false)
     private static void rayTrace(CallbackInfoReturnable<HitResult> cir, @Local(argsOnly = true) Entity caster) {
-        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        if (caster == null) return;
+        String castMod = caster.getPersistentData().contains(ProviderRegistry.CAST_MOD_TAG, Tag.TAG_STRING) ? caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG) : null;
         var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled((LivingEntity) caster)) {
             Entity entity = provider.getTargetEntity((LivingEntity) caster);

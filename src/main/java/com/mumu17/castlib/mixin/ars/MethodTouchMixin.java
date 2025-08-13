@@ -7,7 +7,9 @@ import com.hollingsworth.arsnouveau.api.spell.SpellResolver;
 import com.hollingsworth.arsnouveau.common.lib.GlyphLib;
 import com.hollingsworth.arsnouveau.common.spell.method.MethodTouch;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.mumu17.castlib.util.CastLibTags;
 import com.mumu17.castlib.util.ProviderRegistry;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -16,20 +18,21 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.phys.BlockHitResult;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Mixin(MethodTouch.class)
 public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnEntity", at = @At(value = "HEAD"), ordinal = 0, remap = false, argsOnly = true)
     public Entity onCastOnEntity_entity(Entity original, @Local(argsOnly = true) LivingEntity caster) {
-        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        if (caster == null) {
+            return original;
+        }
+        String castMod = CastLibTags.loadCastModIDFromTag(caster.getPersistentData());
         var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled(caster)) {
             Entity entity = provider.getTargetEntity(caster);
@@ -45,7 +48,10 @@ public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnEntity", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true, remap = false)
     public InteractionHand onCastOnEntity_hand(InteractionHand original, @Local(argsOnly = true) LivingEntity caster) {
-        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        if (caster == null) {
+            return original;
+        }
+        String castMod = CastLibTags.loadCastModIDFromTag(caster.getPersistentData());
         var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled(caster)) {
             Entity entity = provider.getTargetEntity(caster);
@@ -61,7 +67,10 @@ public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnEntity", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true, remap = false)
     public SpellResolver onCastOnEntity_spellResolver(SpellResolver original, @Local(argsOnly = true) LivingEntity caster) {
-        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        if (caster == null) {
+            return original;
+        }
+        String castMod = CastLibTags.loadCastModIDFromTag(caster.getPersistentData());
         var projectileProvider = ProviderRegistry.getProjectileProvider(castMod);
         var cooldownProvider = ProviderRegistry.getArmsNbtProvider(castMod);
         var damageAmplifierProvider = ProviderRegistry.getDamageAmplifierProvider(castMod);
@@ -94,7 +103,10 @@ public class MethodTouchMixin {
     @ModifyVariable(method = "onCastOnBlock(Lnet/minecraft/world/item/context/UseOnContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellStats;Lcom/hollingsworth/arsnouveau/api/spell/SpellContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellResolver;)Lcom/hollingsworth/arsnouveau/api/spell/CastResolveType;", at = @At(value = "HEAD"), ordinal = 0, remap = false, argsOnly = true)
     public UseOnContext onCastOnBlock_UseOnContext(UseOnContext value) {
         LivingEntity caster = value.getPlayer();
-        String castMod = Objects.requireNonNull(caster).getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        if (caster == null) {
+            return value;
+        }
+        String castMod = CastLibTags.loadCastModIDFromTag(caster.getPersistentData());
         var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled(caster)) {
             BlockHitResult blockHR = provider.getBlockHitResult(caster);
@@ -110,11 +122,10 @@ public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnBlock(Lnet/minecraft/world/item/context/UseOnContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellStats;Lcom/hollingsworth/arsnouveau/api/spell/SpellContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellResolver;)Lcom/hollingsworth/arsnouveau/api/spell/CastResolveType;", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true, remap = false)
     public SpellResolver onCastOnBlock_spellResolver(SpellResolver original, @Local(argsOnly = true) UseOnContext context) {
-        if (context == null) {
-            return original;
-        }
+        if (context == null) return original;
         LivingEntity caster = context.getPlayer();
-        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        if (caster == null) return original;
+        String castMod = CastLibTags.loadCastModIDFromTag(caster.getPersistentData());
         var projectileProvider = ProviderRegistry.getProjectileProvider(castMod);
         var cooldownProvider = ProviderRegistry.getArmsNbtProvider(castMod);
         var damageAmplifierProvider = ProviderRegistry.getDamageAmplifierProvider(castMod);
@@ -148,7 +159,8 @@ public class MethodTouchMixin {
 
     @ModifyVariable(method = "onCastOnBlock(Lnet/minecraft/world/phys/BlockHitResult;Lnet/minecraft/world/entity/LivingEntity;Lcom/hollingsworth/arsnouveau/api/spell/SpellStats;Lcom/hollingsworth/arsnouveau/api/spell/SpellContext;Lcom/hollingsworth/arsnouveau/api/spell/SpellResolver;)Lcom/hollingsworth/arsnouveau/api/spell/CastResolveType;", at = @At(value = "HEAD"), ordinal = 0, remap = false, argsOnly = true)
     public BlockHitResult onCastOnBlock_BlockHitResult(BlockHitResult original, @Local(argsOnly = true) LivingEntity caster) {
-        String castMod = caster.getPersistentData().getString(ProviderRegistry.CAST_MOD_TAG);
+        if (caster == null) return original;
+        String castMod = CastLibTags.loadCastModIDFromTag(caster.getPersistentData());
         var provider = ProviderRegistry.getProjectileProvider(castMod);
         if (provider != null && provider.isEnabled(caster)) {
             BlockHitResult blockHR = provider.getBlockHitResult(caster);
